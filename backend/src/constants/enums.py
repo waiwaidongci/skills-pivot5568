@@ -15,3 +15,8 @@ class Review(StrEnum):
     PENDING = 'pending'
     ACCEPTED = 'accepted'
     RETURNED = 'returned'
+
+class Closing(StrEnum):
+    LOCKED = 'locked'
+    CLOSED = 'closed'
+    INCOMPLETE = 'incomplete'

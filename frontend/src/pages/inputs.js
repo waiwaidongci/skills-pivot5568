@@ -7,6 +7,25 @@ import {workspace} from '../stores/workspace.js';
 import {button, el, link, p} from '../utils/dom.js';
 import {date} from '../utils/format.js';
 
+function batchUpload(spec, refresh) {
+  const error = feedback();
+  const submit = button('验收整月批次', {type:'submit', class:'primary', 'data-testid':'upload-batch'});
+  const channel = spec.fields.find(item => item.key === 'channel');
+  return el('form', {class:'fields', onSubmit:handler(submit, error, async event => {
+    const data = new FormData(event.target);
+    const file = data.get('batch_source');
+    if (!file?.size) throw new Error('请选择一个 CSV 文件');
+    if (file.size > 2_000_000) throw new Error('CSV 最多 2 MB');
+    await workspace.uploadBatch({channel:data.get('channel'), period:data.get('period'),
+      filename:file.name, csv_text:await file.text()});
+    await refresh();
+  })}, field(channel),
+    field({key:'period', label:'批次月份', type:'month', help:'整月批次只验收该渠道在该月的受理记录'}),
+    el('label', {class:'field', for:'batch_source'}, el('span', {}, '渠道 CSV'),
+      el('input', {id:'batch_source', type:'file', name:'batch_source', accept:'.csv,text/csv', required:true})),
+    submit, error);
+}
+
 export async function inputs(route, refresh) {
   const {spec,datasets} = workspace;
   if (!session.canWrite) return panel('源批次权限', empty('报名明细由分析员和复核主管管理。业务读者可查看已签发的聚合报表。','#delivery',spec.pages[5]));
@@ -39,8 +58,15 @@ export async function inputs(route, refresh) {
     else location.hash = target;
   })},field({key:'batch_name',label:'批次名称',type:'string',max_length:120}),
     el('label',{class:'field',for:'source'}, el('span',{},'业务 CSV'),el('input',{id:'source',type:'file',name:'source',accept:'.csv,text/csv',required:true})), submit);
-  return el('div',{class:'two-col'},el('div',{class:'wide-panel'},preview),el('aside',{class:'sidebar-panel'},
+  const batches = panel('渠道批次入库记录', table([
+    {key:'period',label:'月份'},
+    {key:'channel',label:'渠道'},
+    {key:'name',label:'批次'},
+    {label:'入库时间',render:row=>date(row.created_at)},
+  ], await workspace.batches(), {caption:'渠道批次入库记录', empty:'还没有渠道整月批次。'}));
+  return el('div',{class:'two-col'},el('div',{class:'wide-panel'},preview,batches),el('aside',{class:'sidebar-panel'},
     panel('数据导入',p('导入后保留原批次和校验指纹，可用同一份数据复跑。','subtle'),sample,upload,error),
+    panel('渠道整月批次',p('各渠道单独上传整月批次，关账取关账时点前最后入库的一批，之后入库的记为迟到。','subtle'),batchUpload(spec,refresh)),
     panel('字段说明',el('dl',{class:'dictionary'},spec.fields.map(item=>el('div',{},el('dt',{},item.label),
       el('dd',{},item.key,item.required === false ? ' · 可空' : ' · 必填',item.options ? ` · ${item.options.join(' / ')}` : '')))))));
 }

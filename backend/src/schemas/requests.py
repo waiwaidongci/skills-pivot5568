@@ -24,6 +24,16 @@ class ReviewRequest(Request):
     note: str = Field(min_length=1, max_length=500)
     decision: str = Field(default='', max_length=120)
 
+class ClosingConfigRequest(Request):
+    start_month: str = Field(min_length=7, max_length=7)
+
+class ChannelBatchUpload(Request):
+    channel: str = Field(min_length=1, max_length=40)
+    period: str = Field(min_length=7, max_length=7)
+    name: str = Field(default='', max_length=120)
+    filename: str = Field(min_length=1, max_length=160)
+    csv_text: str = Field(min_length=1, max_length=2_000_000)
+
 class ScheduleRequest(RunRequest):
     recipient: str = Field(min_length=1, max_length=100)
     first_at: datetime

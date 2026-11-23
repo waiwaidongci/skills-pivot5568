@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy import JSON, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from src.config.database import Base
-from src.constants.enums import Review, Status
+from src.constants.enums import Closing, Review, Status
 from src.utils.time import now
 
 class Schedule(Base):
@@ -50,3 +50,33 @@ class Delivery(Base):
     state: Mapped[str] = mapped_column(String(20))
     detail: Mapped[str] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(default=now)
+
+class ClosingConfig(Base):
+    __tablename__ = 'closing_config'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    start_month: Mapped[str] = mapped_column(String(7))
+    author: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[datetime] = mapped_column(default=now)
+
+class Closing(Base):
+    __tablename__ = 'closings'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    period: Mapped[str] = mapped_column(String(7), unique=True)
+    due_at: Mapped[datetime]
+    state: Mapped[str] = mapped_column(String(20), default=Closing.LOCKED, index=True)
+    missing: Mapped[list] = mapped_column(JSON, default=list)
+    run_id: Mapped[int | None] = mapped_column(ForeignKey('runs.id'))
+    author: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(default=now)
+    finished_at: Mapped[datetime | None]
+
+class ClosingSource(Base):
+    __tablename__ = 'closing_sources'
+    __table_args__ = (UniqueConstraint('closing_id', 'channel'),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    closing_id: Mapped[int] = mapped_column(ForeignKey('closings.id'))
+    channel: Mapped[str] = mapped_column(String(40))
+    batch_id: Mapped[int | None] = mapped_column(ForeignKey('channel_batches.id'))

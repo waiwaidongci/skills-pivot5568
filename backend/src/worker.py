@@ -1,6 +1,7 @@
 import logging
 import time
 from pathlib import Path
+from src.services.closing import close_due
 from src.services.execution import claim, execute, materialize_due
 from src.utils.wakeup import wait
 
@@ -12,6 +13,7 @@ heartbeat = Path('/tmp/analysis-heartbeat')
 def main():
     while True:
         try:
+            close_due()
             materialize_due()
             lease = claim()
             heartbeat.touch()

@@ -6,6 +6,12 @@ def dataset(item):
             'checksum': item.checksum, 'author': item.author, 'created_at': iso(item.created_at)}
 
 
+def channel_batch(item, dataset=None):
+    return {'id': item.id, 'dataset_id': item.dataset_id, 'channel': item.channel, 'period': item.period,
+            'author': item.author, 'created_at': iso(item.created_at),
+            'name': dataset.name if dataset else None, 'row_count': dataset.row_count if dataset else None}
+
+
 def run(item, detail=False):
     item_view = {'id': item.id, 'dataset_id': item.dataset_id, 'name': item.name, 'status': item.status,
                  'author': item.author, 'review': item.review, 'decision': item.decision,
